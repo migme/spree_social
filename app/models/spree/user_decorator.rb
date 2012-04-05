@@ -4,6 +4,11 @@ Spree::User.class_eval do
   devise :omniauthable
 
   def apply_omniauth(omniauth)
+    if omniauth['provider'] == 'facebook'
+      ['email', 'first_name', 'last_name'].each do |attr|
+        self.send("#{attr}=", omniauth['info'][attr])
+      end
+    end
     user_authentications.build(:provider => omniauth['provider'], :uid => omniauth['uid'])
   end
 
