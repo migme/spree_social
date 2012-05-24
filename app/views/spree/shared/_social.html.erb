@@ -1,7 +1,7 @@
 <% if !current_user || !current_user.user_authentications %>
-  <h2><%= t(:sign_in_through_one_of_these_services) %>:</h2>
+    <h3 class="reg-copy"><%= t(:sign_in_through_one_of_these_services) %>:</h3>
 <% end %>
 <% Spree::AuthenticationMethod.where(:environment => ::Rails.env).each do |method| %>
-  <% img = "store/#{method.provider}_32.png" %>
-  <%= link_to(image_tag(img, :size => "32x32", :alt => "#{method.provider}"), "users/auth/#{method.provider}", :title => "#{t(:sign_in_with)} #{method.provider}") if method.active %>
+    <% img = "store/#{method.provider}_32.png" %>
+    <%= link_to(image_tag(img, :size => "32x32", :alt => "#{method.provider}"), "/users/auth/#{method.provider}", :title => "#{t(:sign_in_with)} #{method.provider}") if method.active %>
 <% end %>
