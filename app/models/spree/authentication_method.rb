@@ -1,5 +1,5 @@
 class Spree::AuthenticationMethod < ActiveRecord::Base
-  attr_accessible :provider, :api_key, :api_secret, :environment, :active
+  attr_accessible :provider, :api_key, :api_secret, :environment, :active, :scopes
 
   scope :current_env, where(:environment => ::Rails.env)
 
