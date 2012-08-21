@@ -25,16 +25,19 @@ class Spree::OmniauthCallbacksController < Devise::OmniauthCallbacksController
       end
     else
       if current_user
+        current_user.completed_sign_up! if Spree::User::INCOMPLETE_STATES.include?(current_user.state_name)
         current_user.user_authentications.create!(:provider => auth_hash['provider'], :uid => auth_hash['uid'])
         flash[:success] = "Authentication successful."
         redirect_back_or_default(account_url)
       else
+        # Register new account
         @user = Spree::User.new
         @user.apply_omniauth(auth_hash)
-        if @user.save && @user.next
+        @user.affiliate_code = session[:affiliate_code]
+        if @user.save && @user.completed_sign_up!
           flash[:info] = "Your facebook account is already connected with our website. Please continue the registration."
-          session[:registering_user_id] = @user.id
-          redirect_to user_registration_next_step_path(@user.state_name)
+          sign_in_and_redirect :user, @user
+          #redirect_to redirect_back_or_default(account_url)
         else
           session[:omniauth] = auth_hash
           flash[:error] = "Your facebook account is already connected with our website. But we has problem when connect with your account, so please correct following information."
