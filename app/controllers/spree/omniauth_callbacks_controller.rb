@@ -13,13 +13,14 @@ class Spree::OmniauthCallbacksController < Devise::OmniauthCallbacksController
     if !authentication.nil? && authentication.user
       login_user = authentication.user
       case
-        when login_user && login_user.activated?
+        when login_user && login_user.confirmed?
           flash[:success] = "Signed in successfully."
           sign_in_and_redirect :user, login_user
-        when login_user && !login_user.completed?
-          flash[:success] = "Please continue your registration."
-          session[:registering_user_id] = login_user.id
-          redirect_to user_registration_next_step_path(login_user.state_name)
+        when login_user && (!login_user.confirmed? || !login_user.activated?)
+          login_user.completed_sign_up!
+          session[:just_activated] = true
+          session[:registering_user_id] = nil
+          redirect_to root_url
         else
           raise "#{login_user.id} - has error when try to authenticate with Facebook"
       end
@@ -28,22 +29,17 @@ class Spree::OmniauthCallbacksController < Devise::OmniauthCallbacksController
         current_user.completed_sign_up! if Spree::User::INCOMPLETE_STATES.include?(current_user.state_name)
         current_user.user_authentications.create!(:provider => auth_hash['provider'], :uid => auth_hash['uid'])
         flash[:success] = "Authentication successful."
-        redirect_back_or_default(account_url)
+        @user = current_user
       else
         # Register new account
-        @user = Spree::User.new
-        @user.apply_omniauth(auth_hash)
-        @user.affiliate_code = session[:affiliate_code]
-        if @user.save && @user.completed_sign_up!
-          flash[:info] = "Your facebook account is already connected with our website. Please continue the registration."
-          sign_in_and_redirect :user, @user
-          #redirect_to redirect_back_or_default(account_url)
-        else
-          session[:omniauth] = auth_hash
-          flash[:error] = "Your facebook account is already connected with our website. But we has problem when connect with your account, so please correct following information."
-          redirect_to new_user_registration_url
-        end
+        @user = Spree::User.apply_omniauth(auth_hash, session[:affiliate_code])
+        sign_in(:user, @user)
       end
+      session[:registering_user_id] = nil
+      if !@user.has_role?('auction_user')
+        session[:just_activated] = true
+      end
+      redirect_to(root_url)
     end
   end
 
