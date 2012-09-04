@@ -1,29 +1,23 @@
 class Spree::OmniauthCallbacksController < Devise::OmniauthCallbacksController
-  include Spree::Core::ControllerHelpers
+  #include Spree::Core::ControllerHelpers
 
   def facebook
     if request.env["omniauth.error"].present?
       flash[:error] = t("devise.omniauth_callbacks.failure", :kind => auth_hash['provider'], :reason => t(:user_was_not_valid))
-      redirect_back_or_default(root_url)
+      redirect_to(root_url)
       return
     end
 
     authentication = Spree::UserAuthentication.find_by_provider_and_uid(auth_hash['provider'], auth_hash['uid'])
 
     if !authentication.nil? && authentication.user
-      login_user = authentication.user
-      case
-        when login_user && login_user.confirmed?
-          flash[:success] = "Signed in successfully."
-          sign_in_and_redirect :user, login_user
-        when login_user && (!login_user.confirmed? || !login_user.activated?)
-          login_user.completed_sign_up!
-          session[:just_activated] = true
-          session[:registering_user_id] = nil
-          redirect_to root_url
-        else
-          raise "#{login_user.id} - has error when try to authenticate with Facebook"
+      @user = authentication.user
+      if @user && !@user.confirmed?
+        @user.completed_sign_up!
+        session[:just_activated] = true
+        session[:registering_user_id] = nil
       end
+      sign_in(:user, @user)
     else
       if current_user
         current_user.completed_sign_up! if Spree::User::INCOMPLETE_STATES.include?(current_user.state_name)
@@ -39,8 +33,8 @@ class Spree::OmniauthCallbacksController < Devise::OmniauthCallbacksController
       if !@user.has_role?('auction_user')
         session[:just_activated] = true
       end
-      redirect_to(root_url)
     end
+    redirect_to(root_url)
   end
 
   def failure
