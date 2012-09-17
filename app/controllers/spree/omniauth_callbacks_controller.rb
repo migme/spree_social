@@ -15,7 +15,7 @@ class Spree::OmniauthCallbacksController < Devise::OmniauthCallbacksController
       @user = authentication.user
       if @user && !@user.confirmed?
         @user.completed_sign_up!
-        fire_event('spree.user.signup', :user => @user, :order => current_order(true))
+        fire_event('spree.user.signup', :user => @user)
         session[:just_activated] = true
         session[:registering_user_id] = nil
       end
@@ -30,7 +30,7 @@ class Spree::OmniauthCallbacksController < Devise::OmniauthCallbacksController
         @user = Spree::User.apply_omniauth(auth_hash, session[:affiliate_code])
         if @user.persisted?
           sign_in(:user, @user)
-          fire_event('spree.user.signup', :user => @user, :order => current_order(true))
+          fire_event('spree.user.signup', :user => @user)
         end
       end
       session[:registering_user_id] = nil
